@@ -44,9 +44,7 @@ class _ExcelTableState extends State<ExcelTable> {
   late BleController bleController;
   late Future<DeviceInfo> deviceInfoFuture;
   final TextEditingController controller = TextEditingController();
-  int a = 0,
-      b = 0,
-      c = 0;
+  int a = 0, b = 0, c = 0;
 
   @override
   void initState() {
@@ -55,10 +53,9 @@ class _ExcelTableState extends State<ExcelTable> {
     deviceInfoFuture = loadDeviceInfo();
   }
 
-
   Future<DeviceInfo> loadDeviceInfo() async {
-    BluetoothDevice? selectedDevice = await bleController
-        .loadSelectedDeviceFromPrefs();
+    BluetoothDevice? selectedDevice =
+        await bleController.loadSelectedDeviceFromPrefs();
     return DeviceInfo(selectedDevice!);
   }
 
@@ -68,79 +65,58 @@ class _ExcelTableState extends State<ExcelTable> {
       bleController.discoverServices(device);
       bleController.sendMessageTable(dataToSend);
       String value = await bleController.subscribeToNotificationsTable();
-      const Duration timeoutDuration = Duration(seconds: 15);
+      const Duration timeoutDuration = Duration(seconds: 5);
       const Duration delayBetweenRetries = Duration(seconds: 1);
       DateTime startTime = DateTime.now();
 
       while (DateTime.now().difference(startTime) < timeoutDuration) {
         value = await bleController.subscribeToNotificationsTable();
 
-        if (!value.isEmpty) {
+        if (value.isNotEmpty) {
           setState(() {
             controller.text = value;
-            value = ' ';
           });
-          a = int.parse(controller.text);
-          a = a - 1;
-          b = (a / 10).toInt();
-          c = a % 10;
-        }
 
-        await Future.delayed(delayBetweenRetries);
-      }
+          print("Received value:$value"); // Debug print statement
 
-      if (value.isEmpty) {
-        bleController.sendMessageTable(dataToSend);
-        String value = await bleController.subscribeToNotificationsTable();
-        const Duration timeoutDuration = Duration(seconds: 15);
-        const Duration delayBetweenRetries = Duration(seconds: 1);
-        DateTime startTime = DateTime.now();
+          // Clean the value string
+          String cleanedValue = value.replaceAll(RegExp(r'[^0-9]'), '').trim();
+          print("Cleaned value:$cleanedValue");
+          a = int.parse(cleanedValue);
+          print("Parsed integer: $a");
+          // // Print ASCII values of characters in the original value
+          // value.runes.forEach((int rune) {
+          //   var character = new String.fromCharCode(rune);
+          //   print('Character: $character ASCII: $rune');
+          // });
 
-        while (DateTime.now().difference(startTime) < timeoutDuration) {
-          value = await bleController.subscribeToNotificationsTable();
-
-          if (!value.isEmpty) {
-            setState(() {
-              controller.text = value;
-              value = ' ';
-            });
-            a = int.parse(controller.text);
+          if (a >= 25 && a <= 200) {
             a = a - 1;
+            print("Decremented value: $a");
+
             b = (a / 10).toInt();
+            print("Value of b: $b");
+
             c = a % 10;
+            print("Value of c: $c");
+
+            value = ' ';
           }
-
-          await Future.delayed(delayBetweenRetries);
         }
-
-        if (value.isEmpty) {
-          // Handle the case where no response is received within the timeout
-          setState(() {
-            Fluttertoast.showToast(
-              msg: 'Timeout: No response received within 30 second.',
-              toastLength: Toast.LENGTH_SHORT,
-              gravity: ToastGravity.BOTTOM,
-              timeInSecForIosWeb: 1,
-              backgroundColor: Colors.white,
-              textColor: Colors.black,
-              fontSize: 16.0,
-            );
-          });
-        }
+        await Future.delayed(
+            delayBetweenRetries); // Adding delay between retries
       }
     } catch (e) {
-      print('Error during setup: $e');
+      print("Error during setup: $e");
     }
   }
 
-
   List<List<String>> tableData = List.generate(
     20,
-        (rowIndex) =>
-        List.generate(
-          10,
-              (colIndex) => '0.00000',
-        ),
+    (rowIndex) => List.generate(
+      10,
+      (colIndex) => '0.00000',
+    ),
   );
   TextEditingController editingController = TextEditingController();
   String filePath = "";
@@ -206,57 +182,39 @@ class _ExcelTableState extends State<ExcelTable> {
                               print('$i,$j');
                               if (tableData[i][j].isNotEmpty) {
                                 int k = i * 10 + j + 1;
-                                String formattedK = k.toString().padLeft(
-                                    3, '0');
-                                String dataToSend = '@TBL' + formattedK + ' ' +
-                                    tableData[i][j] + '\n\r';
+                                String formattedK =
+                                    k.toString().padLeft(3, '0');
+                                String dataToSend = '@TBL' +
+                                    formattedK +
+                                    ' ' +
+                                    tableData[i][j] +
+                                    '\n\r';
                                 bleController.sendMessageTable(dataToSend);
                                 String value = await bleController
                                     .subscribeToNotificationsTable();
-                                const Duration timeoutDuration = Duration(
-                                    seconds: 15);
-                                const Duration delayBetweenRetries = Duration(
-                                    seconds: 1);
+                                const Duration timeoutDuration =
+                                    Duration(seconds: 15);
+                                const Duration delayBetweenRetries =
+                                    Duration(seconds: 1);
                                 DateTime startTime = DateTime.now();
-
-                                while (DateTime.now().difference(startTime) <
-                                    timeoutDuration && value.isEmpty) {
-                                  value = await bleController
-                                      .subscribeToNotificationsTable();
-
-                                  if (!value.isEmpty) {
-                                    setState(() {
-                                      Fluttertoast.showToast(
-                                        msg: '$k : $value',
-                                        toastLength: Toast.LENGTH_SHORT,
-                                        gravity: ToastGravity.BOTTOM,
-                                        timeInSecForIosWeb: 1,
-                                        backgroundColor: Colors.white,
-                                        textColor: Colors.black,
-                                        fontSize: 16.0,
-                                      );
-                                      tableData[i][j] = '';
-                                      value = ' ';
-                                    });
-                                  }
-
-                                  await Future.delayed(delayBetweenRetries);
-                                }
-
-                                if (value.isEmpty) {
-                                  bleController.sendMessageTable(dataToSend);
-                                  value = await bleController
-                                      .subscribeToNotificationsTable();
-                                  const Duration timeoutDuration = Duration(
-                                      seconds: 15);
-                                  const Duration delayBetweenRetries = Duration(
-                                      seconds: 1);
-                                  DateTime startTime = DateTime.now();
-
+                                if (value.isNotEmpty) {
+                                  setState(() {
+                                    Fluttertoast.showToast(
+                                      msg: '$k : $value',
+                                      toastLength: Toast.LENGTH_SHORT,
+                                      gravity: ToastGravity.BOTTOM,
+                                      timeInSecForIosWeb: 1,
+                                      backgroundColor: Colors.white,
+                                      textColor: Colors.black,
+                                      fontSize: 16.0,
+                                    );
+                                    tableData[i][j] = '';
+                                  });
+                                } else {
                                   while (DateTime.now().difference(startTime) <
-                                      timeoutDuration && value.isEmpty) {
-                                    value =
-                                    await bleController
+                                          timeoutDuration &&
+                                      value.isEmpty) {
+                                    value = await bleController
                                         .subscribeToNotificationsTable();
 
                                     if (!value.isEmpty) {
@@ -279,9 +237,46 @@ class _ExcelTableState extends State<ExcelTable> {
                                   }
 
                                   if (value.isEmpty) {
+                                    bleController.sendMessageTable(dataToSend);
+                                    value = await bleController
+                                        .subscribeToNotificationsTable();
+                                    const Duration timeoutDuration =
+                                        Duration(seconds: 15);
+                                    const Duration delayBetweenRetries =
+                                        Duration(seconds: 1);
+                                    DateTime startTime = DateTime.now();
+
+                                    while (
+                                        DateTime.now().difference(startTime) <
+                                                timeoutDuration &&
+                                            value.isEmpty) {
+                                      value = await bleController
+                                          .subscribeToNotificationsTable();
+
+                                      if (!value.isEmpty) {
+                                        setState(() {
+                                          Fluttertoast.showToast(
+                                            msg: '$k : $value',
+                                            toastLength: Toast.LENGTH_SHORT,
+                                            gravity: ToastGravity.BOTTOM,
+                                            timeInSecForIosWeb: 1,
+                                            backgroundColor: Colors.white,
+                                            textColor: Colors.black,
+                                            fontSize: 16.0,
+                                          );
+                                          tableData[i][j] = '';
+                                          value = ' ';
+                                        });
+                                      }
+
+                                      await Future.delayed(delayBetweenRetries);
+                                    }
+                                  }
+                                  if (value.isEmpty) {
                                     setState(() {
                                       Fluttertoast.showToast(
-                                        msg: 'Timeout: No response received within 30 seconds.',
+                                        msg:
+                                            'Timeout: No response received within 30 seconds.',
                                         toastLength: Toast.LENGTH_SHORT,
                                         gravity: ToastGravity.BOTTOM,
                                         timeInSecForIosWeb: 1,
@@ -292,8 +287,7 @@ class _ExcelTableState extends State<ExcelTable> {
                                     });
                                   }
                                 }
-                              }
-                              else {
+                              } else {
                                 Fluttertoast.showToast(
                                   msg: 'Enter the value to send msg',
                                   toastLength: Toast.LENGTH_SHORT,
@@ -306,8 +300,7 @@ class _ExcelTableState extends State<ExcelTable> {
                               }
                             }
                           }
-                        }
-                        else {
+                        } else {
                           Fluttertoast.showToast(
                             msg: 'Not able to fetch no. of parts',
                             toastLength: Toast.LENGTH_SHORT,
@@ -331,62 +324,45 @@ class _ExcelTableState extends State<ExcelTable> {
                               print('$i,$j');
                               int k = i * 10 + j + 1;
                               String formattedK = k.toString().padLeft(3, '0');
-                              String dataToSend = '@TBL' + formattedK + '?' +
-                                  '\n\r';
+                              String dataToSend =
+                                  '@TBL' + formattedK + '?' + '\n\r';
                               bleController.sendMessageTable(dataToSend);
                               String value = await bleController
                                   .subscribeToNotificationsTable();
-                              const Duration timeoutDuration = Duration(
-                                  seconds: 15);
-                              const Duration delayBetweenRetries = Duration(
-                                  seconds: 1);
+                              const Duration timeoutDuration =
+                                  Duration(seconds: 15);
+                              const Duration delayBetweenRetries =
+                                  Duration(seconds: 1);
                               DateTime startTime = DateTime.now();
+                              print('Receive: $k : $value');
+                              if (value.isNotEmpty) {
+                                List<String> parts = value.split(',');
 
-                              while (DateTime.now().difference(startTime) <
-                                  timeoutDuration && value.isEmpty) {
-                                value = await bleController
-                                    .subscribeToNotificationsTable();
-
-                                if (!value.isEmpty) {
-                                  List<String> parts = value.split(',');
-
-                                  if (parts.length >= 2) {
-                                    value = parts[1];
-                                    tableData[i][j] = value;
-                                    setState(() {
-                                      Fluttertoast.showToast(
-                                        msg: '$k : $value',
-                                        toastLength: Toast.LENGTH_SHORT,
-                                        gravity: ToastGravity.BOTTOM,
-                                        timeInSecForIosWeb: 1,
-                                        backgroundColor: Colors.white,
-                                        textColor: Colors.black,
-                                        fontSize: 16.0,
-                                      );
-                                      value = ' ';
-                                    });
-                                  }
+                                if (parts.length >= 2) {
+                                  value = parts[1];
+                                  tableData[i][j] = value;
+                                  setState(() {
+                                    Fluttertoast.showToast(
+                                      msg: '$k : $value',
+                                      toastLength: Toast.LENGTH_SHORT,
+                                      gravity: ToastGravity.BOTTOM,
+                                      timeInSecForIosWeb: 1,
+                                      backgroundColor: Colors.white,
+                                      textColor: Colors.black,
+                                      fontSize: 16.0,
+                                    );
+                                  });
                                 }
-
-                                await Future.delayed(delayBetweenRetries);
-                              }
-
-                              if (value.isEmpty) {
-                                bleController.sendMessageTable(dataToSend);
-                                value = await bleController
-                                    .subscribeToNotificationsTable();
-                                const Duration timeoutDuration = Duration(
-                                    seconds: 15);
-                                const Duration delayBetweenRetries = Duration(
-                                    seconds: 1);
-                                DateTime startTime = DateTime.now();
-
+                              } else {
                                 while (DateTime.now().difference(startTime) <
-                                    timeoutDuration && value.isEmpty) {
+                                        timeoutDuration &&
+                                    value.isEmpty) {
                                   value = await bleController
                                       .subscribeToNotificationsTable();
+
                                   if (!value.isEmpty) {
                                     List<String> parts = value.split(',');
+
                                     if (parts.length >= 2) {
                                       value = parts[1];
                                       tableData[i][j] = value;
@@ -404,29 +380,68 @@ class _ExcelTableState extends State<ExcelTable> {
                                       });
                                     }
                                   }
-
+                                  print('Receive:');
                                   await Future.delayed(delayBetweenRetries);
                                 }
 
                                 if (value.isEmpty) {
-                                  setState(() {
-                                    Fluttertoast.showToast(
-                                      msg: 'Timeout: No response received within 30 seconds.',
-                                      toastLength: Toast.LENGTH_SHORT,
-                                      gravity: ToastGravity.BOTTOM,
-                                      timeInSecForIosWeb: 1,
-                                      backgroundColor: Colors.white,
-                                      textColor: Colors.black,
-                                      fontSize: 16.0,
-                                    );
-                                  });
-                                  tableData[i][j] = '';
+                                  bleController.sendMessageTable(dataToSend);
+                                  value = await bleController
+                                      .subscribeToNotificationsTable();
+                                  const Duration timeoutDuration =
+                                      Duration(seconds: 15);
+                                  const Duration delayBetweenRetries =
+                                      Duration(seconds: 1);
+                                  DateTime startTime = DateTime.now();
+
+                                  while (DateTime.now().difference(startTime) <
+                                          timeoutDuration &&
+                                      value.isEmpty) {
+                                    value = await bleController
+                                        .subscribeToNotificationsTable();
+                                    if (!value.isEmpty) {
+                                      List<String> parts = value.split(',');
+                                      if (parts.length >= 2) {
+                                        value = parts[1];
+                                        tableData[i][j] = value;
+                                        setState(() {
+                                          Fluttertoast.showToast(
+                                            msg: '$k : $value',
+                                            toastLength: Toast.LENGTH_SHORT,
+                                            gravity: ToastGravity.BOTTOM,
+                                            timeInSecForIosWeb: 1,
+                                            backgroundColor: Colors.white,
+                                            textColor: Colors.black,
+                                            fontSize: 16.0,
+                                          );
+                                          value = ' ';
+                                        });
+                                      }
+                                    }
+
+                                    await Future.delayed(delayBetweenRetries);
+                                  }
+
+                                  if (value.isEmpty) {
+                                    setState(() {
+                                      Fluttertoast.showToast(
+                                        msg:
+                                            'Timeout: No response received within 30 seconds.',
+                                        toastLength: Toast.LENGTH_SHORT,
+                                        gravity: ToastGravity.BOTTOM,
+                                        timeInSecForIosWeb: 1,
+                                        backgroundColor: Colors.white,
+                                        textColor: Colors.black,
+                                        fontSize: 16.0,
+                                      );
+                                    });
+                                    tableData[i][j] = '';
+                                  }
                                 }
                               }
                             }
                           }
-                        }
-                        else {
+                        } else {
                           Fluttertoast.showToast(
                             msg: 'Not able to fetch no. of parts',
                             toastLength: Toast.LENGTH_SHORT,
@@ -458,52 +473,48 @@ class _ExcelTableState extends State<ExcelTable> {
                         border: TableBorder.all(width: 2.0),
                         columns: List.generate(
                           10,
-                              (index) =>
-                              DataColumn(
-                                label: Container(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: Text('Column $index'),
-                                ),
-                              ),
+                          (index) => DataColumn(
+                            label: Container(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Column $index'),
+                            ),
+                          ),
                         ),
                         rows: List.generate(
                           20,
-                              (rowIndex) =>
-                              DataRow(
-                                cells: List.generate(
-                                  10,
-                                      (colIndex) =>
-                                      DataCell(
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              editingController.text =
-                                              tableData[rowIndex][colIndex];
-                                            });
-                                            _showEditDialog(rowIndex, colIndex);
-                                          },
-                                          child: DecoratedBox(
-                                            decoration: BoxDecoration(
-                                              color: tableData[rowIndex][colIndex]
-                                                  .isEmpty
-                                                  ? Colors
-                                                  .red[800] // Color for null value
-                                                  : null, // Default color
-                                            ),
-                                            child: Container(
-                                              padding: EdgeInsets.all(8.0),
-                                              child: Text(
-                                                tableData[rowIndex][colIndex],
-                                                // Remove any explicit color settings here
-                                                // (e.g., color: Colors.black) to allow default color
-                                              ),
-                                            ),
-                                          ),
-
-                                        ),
+                          (rowIndex) => DataRow(
+                            cells: List.generate(
+                              10,
+                              (colIndex) => DataCell(
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      editingController.text =
+                                          tableData[rowIndex][colIndex];
+                                    });
+                                    _showEditDialog(rowIndex, colIndex);
+                                  },
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: tableData[rowIndex][colIndex]
+                                              .isEmpty
+                                          ? Colors
+                                              .red[800] // Color for null value
+                                          : null, // Default color
+                                    ),
+                                    child: Container(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Text(
+                                        tableData[rowIndex][colIndex],
+                                        // Remove any explicit color settings here
+                                        // (e.g., color: Colors.black) to allow default color
                                       ),
+                                    ),
+                                  ),
                                 ),
                               ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -524,7 +535,7 @@ class _ExcelTableState extends State<ExcelTable> {
       for (int colIndex = 0; colIndex < 10; colIndex++) {
         sheetObject
             .cell(
-            CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: 0))
+                CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: 0))
             .value = 'Column $colIndex' as CellValue?;
       }
 
@@ -533,7 +544,7 @@ class _ExcelTableState extends State<ExcelTable> {
         for (int colIndex = 0; colIndex < 10; colIndex++) {
           sheetObject
               .cell(CellIndex.indexByColumnRow(
-              columnIndex: colIndex, rowIndex: rowIndex + 1))
+                  columnIndex: colIndex, rowIndex: rowIndex + 1))
               .value = tableData[rowIndex][colIndex] as CellValue?;
         }
       }
@@ -564,8 +575,8 @@ class _ExcelTableState extends State<ExcelTable> {
         extensions: ['xls', 'xlsx'],
       );
 
-      var files = await file_selector.openFiles(
-          acceptedTypeGroups: [typeGroup]);
+      var files =
+          await file_selector.openFiles(acceptedTypeGroups: [typeGroup]);
       if (files != null && files.isNotEmpty) {
         await _readExcelFile(files[0]);
       } else {
@@ -591,12 +602,11 @@ class _ExcelTableState extends State<ExcelTable> {
       // Extract only the table data from the filtered rows
       var importedData = dataRows
           .map(
-            (row) =>
-        List<String>.from(row.map(
-          // Handle null values safely:
+            (row) => List<String>.from(row.map(
+              // Handle null values safely:
               (cell) => cell?.value?.toString() ?? '',
-        )),
-      )
+            )),
+          )
           .toList();
 
       // Pad the imported data with default values ('0.00000') to match the expected grid size
@@ -651,16 +661,19 @@ class _ExcelTableState extends State<ExcelTable> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
-                  onPressed: () async{
-                    var dataToSend = '@TBL'+ formattedK + '?' + '\n\r';
-                    bleController.sendMessageTable( dataToSend);
-                    String value = await bleController.subscribeToNotificationsTable();
+                  onPressed: () async {
+                    var dataToSend = '@TBL' + formattedK + '?' + '\n\r';
+                    bleController.sendMessageTable(dataToSend);
+                    String value =
+                        await bleController.subscribeToNotificationsTable();
                     const Duration timeoutDuration = Duration(seconds: 15);
                     const Duration delayBetweenRetries = Duration(seconds: 1);
                     DateTime startTime = DateTime.now();
 
-                    while (DateTime.now().difference(startTime) < timeoutDuration) {
-                      value = await bleController.subscribeToNotificationsTable();
+                    while (DateTime.now().difference(startTime) <
+                        timeoutDuration) {
+                      value =
+                          await bleController.subscribeToNotificationsTable();
 
                       if (!value.isEmpty) {
                         List<String> parts = value.split(',');
@@ -681,7 +694,8 @@ class _ExcelTableState extends State<ExcelTable> {
                           });
                         }
                         setState(() {
-                          tableData[rowIndex][colIndex] = editingController.text;
+                          tableData[rowIndex][colIndex] =
+                              editingController.text;
                         });
                         Navigator.of(context).pop();
                         break;
@@ -694,7 +708,8 @@ class _ExcelTableState extends State<ExcelTable> {
                       // Handle the case where no response is received within the timeout
                       setState(() {
                         Fluttertoast.showToast(
-                          msg: 'Timeout: No response received within 15 seconds.',
+                          msg:
+                              'Timeout: No response received within 15 seconds.',
                           toastLength: Toast.LENGTH_SHORT,
                           gravity: ToastGravity.BOTTOM,
                           timeInSecForIosWeb: 1,
@@ -710,17 +725,24 @@ class _ExcelTableState extends State<ExcelTable> {
                   child: Text('Receive'),
                 ),
                 TextButton(
-                  onPressed: () async{
-                    if(editingController.text.isNotEmpty){
-                      var dataToSend = '@TBL'+ formattedK + ' '+ editingController.text + '\n\r';
-                      bleController.sendMessageTable( dataToSend);
-                      String value = await bleController.subscribeToNotificationsTable();
+                  onPressed: () async {
+                    if (editingController.text.isNotEmpty) {
+                      var dataToSend = '@TBL' +
+                          formattedK +
+                          ' ' +
+                          editingController.text +
+                          '\n\r';
+                      bleController.sendMessageTable(dataToSend);
+                      String value =
+                          await bleController.subscribeToNotificationsTable();
                       const Duration timeoutDuration = Duration(seconds: 15);
                       const Duration delayBetweenRetries = Duration(seconds: 1);
                       DateTime startTime = DateTime.now();
 
-                      while (DateTime.now().difference(startTime) < timeoutDuration) {
-                        value = await bleController.subscribeToNotificationsTable();
+                      while (DateTime.now().difference(startTime) <
+                          timeoutDuration) {
+                        value =
+                            await bleController.subscribeToNotificationsTable();
 
                         if (!value.isEmpty) {
                           setState(() {
@@ -736,7 +758,8 @@ class _ExcelTableState extends State<ExcelTable> {
                             value = ' ';
                           });
                           setState(() {
-                            tableData[rowIndex][colIndex] = editingController.text;
+                            tableData[rowIndex][colIndex] =
+                                editingController.text;
                           });
                           Navigator.of(context).pop();
                           break;
@@ -749,7 +772,8 @@ class _ExcelTableState extends State<ExcelTable> {
                         // Handle the case where no response is received within the timeout
                         setState(() {
                           Fluttertoast.showToast(
-                            msg: 'Timeout: No response received within 15 seconds.',
+                            msg:
+                                'Timeout: No response received within 15 seconds.',
                             toastLength: Toast.LENGTH_SHORT,
                             gravity: ToastGravity.BOTTOM,
                             timeInSecForIosWeb: 1,
@@ -761,8 +785,7 @@ class _ExcelTableState extends State<ExcelTable> {
                       }
 
                       print('Send ${editingController.text}');
-                    }
-                    else{
+                    } else {
                       setState(() {
                         Fluttertoast.showToast(
                           msg: 'First enter value',
@@ -786,7 +809,6 @@ class _ExcelTableState extends State<ExcelTable> {
     );
   }
 }
-
 
 class DeviceInfo {
   final BluetoothDevice device;
