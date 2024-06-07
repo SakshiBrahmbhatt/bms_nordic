@@ -1,16 +1,6 @@
 # bmc_nordic
+Here is the app where I have use the flutter_blue library of flutter to perform the connectivity of BLE to my hardware module. It also helps me to communicate with the hardware module.
 
-A new Flutter project.
+If you are stuck with the where the communication part is then let me help you all the functionalities and performance are in ble_controller where you can easily find it.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+If still you find problem then pls let me know I am happy to help :)
